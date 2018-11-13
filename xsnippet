@@ -1,0 +1,107 @@
+#!/bin/bash
+
+readonly TAB=$'\t'
+readonly TAGPATTERN='^[ '"${TAB}"']*#[ '"${TAB}"']*<snippet-(begin|end) ([^ '"${TAB}"'>]+)>[ '"${TAB}"']*$'
+readonly TAGBEGPATTERN='^[ '"${TAB}"']*#[ '"${TAB}"']*<snippet-begin ([^ '"${TAB}"'>]+)>[ '"${TAB}"']*$'
+if sed --version > /dev/null 2>&1 && sed --version | grep -q '(GNU sed)'; then
+	SEDX="sed -r"
+else
+	SEDX="sed -E"
+fi
+
+
+show_help() {
+	cat << EOF
+Usage: $(basename $0) todir [src ...]
+
+Markup format (extended sed regex)
+----------------------------------
+
+	$TAGPATTERN
+
+Example use case
+----------------
+
+The marked up source code, denoted as "src.py":
+
+	#!/usr/bin/env python
+
+	# <snippet-begin xxx>
+	# <snippet-begin yyy>
+	def f():
+	    print('f')
+	# <snippet-end xxx>
+
+	def g():
+	    print('g')
+	# <snippet-end yyy>
+
+	# <snippet-begin xxx>
+	def h():
+	    print('h')
+
+	# <snippet-end xxx>
+
+	def abc():
+	    pass
+
+Commands (bash) and results:
+
+	\$ ls
+	\$ $(basename $0) . src.py
+	Warning: reentrant tag \"xxx\"
+	\$ ls
+	xxx  yyy
+	\$ cat xxx
+	def f():
+	    print('f')
+	def h():
+	    print('h')
+
+	\$ cat yyy
+	def f():
+	    print('f')
+
+	def g():
+	    print('g')
+EOF
+}
+
+if [ "$1" = "-h" -o "$1" = "--help" ]; then
+	show_help
+	exit 0
+fi
+
+todir="$1"
+if [ -z "$todir" ]; then exit 0; fi
+shift
+srcs="$@"
+
+if [ -z "$srcs" ]; then exit 0; fi
+if [ ! -d "$todir" ]; then
+	echo "Warning: creating directory \"$todir\"" >> /dev/stderr
+	mkdir -p "$todir"
+fi
+
+
+# check re-entrant tags
+cat $srcs \
+	| $SEDX -n 's/'"$TAGBEGPATTERN"'/\1/p' \
+	| sort \
+	| uniq -c \
+	| awk '{ if ($1>1) { print $2 } }' \
+	| xargs -n1 -I'{}' -- echo Warning: reentrant tag \"{}\" >> /dev/stderr
+
+
+# multiple-pass extraction of snippets
+cat $srcs \
+	| $SEDX -n 's/'"$TAGBEGPATTERN"'/\1/p' \
+	| sort \
+	| uniq \
+	| while read tagname; do
+		tofile="${todir%%+(/)}${todir:+/}$tagname"
+		cat $srcs \
+			| $SEDX -n '/^[ \t]*#[ \t]*<snippet-begin '"$tagname"'>[ \t]*$/,/^[ \t]*#[ \t]*<snippet-end '"$tagname"'>[ \t]*$/p' \
+			| $SEDX '/'"$TAGPATTERN"'/d' \
+			> "$tofile"
+	done
