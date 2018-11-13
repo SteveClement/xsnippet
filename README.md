@@ -20,7 +20,7 @@ Simple script to extract snippets from text file(s) and write to other files.
 ### Markup format (sed regex)
 
 ```regex
-^# *<snippet-\(begin\|end\) \([^ \t>]\+\)>$
+^[ \t]*#[ \t]*<snippet-(begin|end) ([^ \t>]+)>[ \t]*$
 ```
 
 ### Example use case
