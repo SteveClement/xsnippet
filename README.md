@@ -30,21 +30,21 @@ The marked up source code, denoted as "src.py":
 ```python
 #!/usr/bin/env python
 
-# <snippet-begin xxx>
-# <snippet-begin yyy>
+# <snippet-begin output-script1.sh>
+# <snippet-begin output-script2.sh>
 def f():
     print('f')
-# <snippet-end xxx>
+# <snippet-end output-script1.sh>
 
 def g():
     print('g')
-# <snippet-end yyy>
+# <snippet-end output-script2.sh>
 
-# <snippet-begin xxx>
+# <snippet-begin output-script1.sh>
 def h():
     print('h')
 
-# <snippet-end xxx>
+# <snippet-end output-script1.sh>
 
 def abc():
     pass
@@ -55,16 +55,16 @@ Commands (bash) and results:
 ```
 $ ls
 $ xsnippet.sh . src.py
-Warning: reentrant tag "xxx"
+Warning: reentrant tag "output-script1.sh"
 $ ls
-xxx  yyy
-$ cat xxx
+output-script1.sh  output-script2.sh
+$ cat output-script1.sh
 def f():
     print('f')
 def h():
     print('h')
 
-$ cat yyy
+$ cat output-script2.sh
 def f():
     print('f')
 
